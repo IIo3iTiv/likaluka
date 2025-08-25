@@ -1,0 +1,36 @@
+name: itcamp
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    env_file: zookeeper.env
+    container_name: itc-zookeeper
+    restart: on-failure
+    ports:
+      - 2181:2181
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+  
+  kafka:
+    image: bitnami/kafka:latest
+    env_file: kafka.env
+    container_name: itc-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 9093:9093
+    volumes:
+      - kafka_data:/bitnami/kafka
+      #- ./bash/create_topic.sh:/create_topic.sh
+    #entrypoint: /create_topic.sh
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local

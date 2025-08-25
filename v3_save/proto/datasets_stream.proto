@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package DataService;
+
+option go_package = "itc/proto/v2";
+
+service DataService {
+    rpc StreamData (stream Request) returns (Response);
+}
+
+message Request {
+    uint32 guid = 1;
+    int64 timestamp = 2;
+    float r = 3;
+    float s = 4;
+    float t = 5;
+}
+
+message Response {
+    uint64 received_count = 1;
+    bool success = 2;
+    string msg = 3;
+}

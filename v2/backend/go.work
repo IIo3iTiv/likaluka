@@ -1,0 +1,9 @@
+go 1.24.5
+
+use (
+	./app
+	./minio
+	./postgre
+	./postgre/tables/engine
+	./server
+)

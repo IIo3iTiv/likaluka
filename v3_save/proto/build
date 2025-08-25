@@ -1,0 +1,1 @@
+protoc --plugin=protoc-gen-go=/home/mainuser/go/bin/protoc-gen-go --plugin=protoc-gen-go-grpc=/home/mainuser/go/bin/protoc-gen-go-grpc -I proto --go_out=./proto/gen/go --go-grpc_out=./proto/gen/go datasets_stream.proto

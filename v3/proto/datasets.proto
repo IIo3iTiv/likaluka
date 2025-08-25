@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "itc/proto";
+
+service DataService {
+    rpc Send (DataMessage) returns (google.protobuf.Empty);
+}
+
+message DataMessage {
+    double r = 1;
+    double s = 2;
+    double t = 3;
+    //string guid = 4;
+    //int64 date = 5; 
+}

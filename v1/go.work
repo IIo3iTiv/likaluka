@@ -1,0 +1,13 @@
+go 1.24.5
+
+use (
+	./cmd
+	./internal/common/config
+	./internal/common/dto
+	./internal/common/errors
+	./internal/common/responses
+	./internal/handler
+	./internal/handler/minio
+	./pkg/minio
+	./pkg/minio/helpers
+)

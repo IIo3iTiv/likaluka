@@ -1,0 +1,7 @@
+**/certificate*/
+*.jks
+*.pem
+*.crt
+*.p12
+**/vendor/
+*.csv

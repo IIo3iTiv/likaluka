@@ -1,0 +1,10 @@
+go 1.25.0
+
+use (
+	./go-agregator
+	./go-agregator/v2
+	./go-replayer
+	./go-replayer/v2
+	./proto/gen/go/itc/proto
+	./proto/gen/go/itc/proto/v2 // stream
+)
