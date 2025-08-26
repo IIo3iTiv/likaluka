@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	pb "itc/proto/v3"
+	pb "itc/proto/v4"
 	"log"
 	"time"
 
@@ -17,6 +17,10 @@ type GrpcBatchSender struct {
 func InitGRPC(addr string) (g GrpcBatchSender, err error) {
 	conn, err := grpc.NewClient(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(10*1024*1024),
+			grpc.MaxCallSendMsgSize(5*1024*1024),
+		),
 	)
 	if err != nil {
 		return

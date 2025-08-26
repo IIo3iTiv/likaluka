@@ -132,6 +132,8 @@ services:
       dockerfile: ./replayer.Dockerfile
     environment:
       - AGREGATOR_ADDR=agregator:50051
+    ports:
+      - 50050:8080
     volumes:
       - $HOST_DATASET_PATH:/app/bin/datasets:ro
     depends_on:

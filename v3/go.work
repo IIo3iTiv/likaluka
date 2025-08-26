@@ -1,13 +1,14 @@
 go 1.25.0
 
 use (
-	./go-agregator
+	./go-agregator/v1
 	./go-agregator/v2
 	./go-agregator/v3
-	./go-replayer
+	./go-replayer/v1
 	./go-replayer/v2
 	./go-replayer/v3
-	./proto/gen/go/itc/proto
+	./proto/gen/go/itc/proto/v1
 	./proto/gen/go/itc/proto/v2 // stream
 	./proto/gen/go/itc/proto/v3 // batch
+	./proto/gen/go/itc/proto/v4 // batch_v2
 )

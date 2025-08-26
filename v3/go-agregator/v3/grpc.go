@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	pb "itc/proto/v3"
+	pb "itc/proto/v4"
 	"log"
 	"net"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"google.golang.org/grpc"
@@ -21,7 +22,12 @@ func InitGrpc() (err error) {
 		err = fmt.Errorf("listen: %s", err.Error())
 		return
 	}
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.ConnectionTimeout(60*time.Second),
+		grpc.MaxConcurrentStreams(1000),
+		grpc.MaxRecvMsgSize(10*1024*1024),
+		grpc.MaxSendMsgSize(10*1024*1024),
+	)
 	pb.RegisterDataServiceServer(s, &server{})
 
 	err = s.Serve(lis)
@@ -32,31 +38,33 @@ func InitGrpc() (err error) {
 }
 
 func (s *server) SendDataBatch(ctx context.Context, batch *pb.DataBatch) (resp *pb.Response, err error) {
+	go ProcessBatch(batch)
+	resp = &pb.Response{Success: true, Msg: "In processing"}
+	return
+}
+
+func ProcessBatch(batch *pb.DataBatch) {
 	log.Printf("Received batch. Guid: %d. Length: %d", batch.GetGuid(), len(batch.Points))
 	var dataJSON DataJSON
 	dataJSON.Guid = batch.GetGuid()
+	dataJSON.Date = batch.GetDate().AsTime().Unix()
 	for _, bp := range batch.Points {
 		dataJSON.Data = append(dataJSON.Data, BatchJSON{
-			Date: bp.Date.AsTime().UnixNano(),
-			R:    bp.R,
-			S:    bp.S,
-			T:    bp.T,
+			R: bp.R,
+			S: bp.S,
+			T: bp.T,
 		})
 	}
 
 	json := jsoniter.ConfigFastest
 	jsonData, err := json.MarshalToString(&dataJSON)
 	if err != nil {
-		resp = &pb.Response{Success: false, Msg: fmt.Sprintf("Error: JSONMarshal: %s", err.Error())}
 		log.Printf("Error. MershalJSON. Guid: %d. ErrorMsg: %s", batch.GetGuid(), err.Error())
 		return
 	}
 	err = KafkaPublish(jsonData)
 	if err != nil {
-		resp = &pb.Response{Success: false, Msg: fmt.Sprintf("Error: KafkaPublish: %s", err.Error())}
 		log.Printf("Error. KafkaPublish. ErrorMsg: %s", err.Error())
 		return
 	}
-	resp = &pb.Response{Success: true, Msg: "Ok"}
-	return
 }

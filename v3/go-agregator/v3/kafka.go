@@ -8,14 +8,14 @@ import (
 
 type DataJSON struct {
 	Guid uint32      `json:"guid"`
+	Date int64       `json:"date"`
 	Data []BatchJSON `json:"data"`
 }
 
 type BatchJSON struct {
-	Date int64   `json:"date"`
-	R    float32 `json:"r"`
-	S    float32 `json:"s"`
-	T    float32 `json:"t"`
+	R float32 `json:"r"`
+	S float32 `json:"s"`
+	T float32 `json:"t"`
 }
 
 const (

@@ -1,0 +1,148 @@
+services:
+#region kafka
+  kafka:
+    profiles: ["kafka-broker", "kafka", "all"]
+    container_name: kafka
+    hostname: kafka
+    image: bitnami/kafka:4.0.0
+    ports:
+      - 29092:29092
+      - 9093:9093
+      - 29095:9404
+    # restart: always
+    networks:
+      - itcamp  
+    environment:
+      # KRaft
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_SUPER_USERS=User:sa
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER 
+
+      # Listiners
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9091,EXTERNAL://:29092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafka:9091,EXTERNAL://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:SASL_SSL,EXTERNAL:SASL_SSL,CONTROLLER:SASL_SSL
+      
+      # SSL - Internal/Controller
+      - KAFKA_CFG_SSL_KEYSTORE_LOCATION=/opt/bitnami/kafka/config/certs/kafka.keystore.jks
+      - KAFKA_CFG_SSL_KEYSTORE_PASSWORD=supersecret
+      - KAFKA_CFG_SSL_KEY_PASSWORD=supersecret
+      - KAFKA_CFG_SSL_TRUSTSTORE_LOCATION=/opt/bitnami/kafka/config/certs/kafka.keystore.jks
+      - KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD=supersecret
+      - KAFKA_CERTIFICATE_PASSWORD=supersecret
+      - KAFKA_CFG_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+      - KAFKA_TLS_TYPE=JKS
+
+      - KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+      - KAFKA_CONTROLLER_USER=sa
+      - KAFKA_CONTROLLER_PASSWORD=000000
+
+      # SASL - External
+      - KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+      - KAFKA_INTER_BROKER_USER=sa
+      - KAFKA_INTER_BROKER_PASSWORD=000000
+      - KAFKA_CLIENT_USERS=sa,da,va
+      - KAFKA_CLIENT_PASSWORDS=000000,111111,222222
+
+      # ACL
+      - KAFKA_CFG_AUTHORIZER_CLASS_NAME=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      - KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND=false
+
+      # COMMON SETTINGS
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=false
+      - EXTRA_ARGS=-javaagent:/opt/jmx-exporter/jmx_prometheus_javaagent-0.19.0.jar=9404:/opt/jmx-exporter/kafka-3_0_0.yml
+    volumes:
+      - kafka_data:/bitnami/kafka
+      - ./kafka/jmx-exporter:/opt/jmx-exporter
+      - ./kafka/keystore/kafka-0.server.keystore.jks:/opt/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./kafka/truststore/kafka.truststore.jks:/opt/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+    healthcheck:
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9091; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+#region kafka-ui
+  kafka-ui:
+    profiles: ["kafka-ui", "kafka", "all"]
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    # restart: always
+    networks:
+      - itcamp  
+    environment:
+      # CLUSTER SETTINGS
+      - KAFKA_CLUSTERS_0_NAME=dev-cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9091
+      - KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL=SASL_SSL
+      - KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM=PLAIN
+      - KAFKA_CLUSTERS_0_PROPERTIES_PROTOCOL=SASL
+      - KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required username="sa" password="000000";
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+      # AUTH
+      - AUTH_TYPE=LOGIN_FORM
+      - SPRING_SECURITY_USER_NAME=admin
+      - SPRING_SECURITY_USER_PASSWORD=admin
+      # TLS
+      - KAFKA_CLUSTERS_0_SSL_TRUSTSTORELOCATION=/kafka.truststore.jks
+      - KAFKA_CLUSTERS_0_SSL_TRUSTSTOREPASSWORD=supersecret
+    volumes:
+      - ./kafka/truststore/kafka.truststore.jks:/kafka.truststore.jks:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider localhost:8080 || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  
+#region agragator
+  agregator:
+    profiles: ["agregator", "services", "all"]
+    container_name: agregator
+    build:
+      context: .
+      dockerfile: ./agregator.Dockerfile
+    # network_mode: "host"
+    ports:
+      - 50051:50051
+    volumes:
+      - ./kafka/truststore/kafka.truststore.pem:/app/bin/kafka.truststore.pem:ro
+      # - ./kafka/certificate-authority/ca-cert
+    networks:
+     - itcamp
+
+#region replayer
+  replayer:
+    profiles: ["replayer", "services", "all"]
+    container_name: replayer
+    build:
+      context: .
+      dockerfile: ./replayer.Dockerfile
+    environment:
+      - AGREGATOR_ADDR=agregator:50051
+    ports:
+      - 8080:8080
+    volumes:
+      - $HOST_DATASET_PATH:/app/bin/datasets:ro
+    depends_on:
+      - agregator
+    networks:
+      - itcamp
+
+volumes:
+  kafka_data:
+
+networks:
+  itcamp:

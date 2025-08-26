@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package DataService;
+
+option go_package = "itc/proto/v4";
+
+import "google/protobuf/timestamp.proto";
+
+service DataService {
+    rpc SendDataBatch(DataBatch) returns (Response);
+}
+
+message DataPoint {
+    float r = 1;
+    float s = 2;
+    float t = 3;
+}
+
+message DataBatch {
+    uint32 guid = 1;
+    google.protobuf.Timestamp Date = 2;
+    repeated DataPoint points = 3;
+}
+
+message Response {
+    bool success = 1;
+    string msg = 2;
+}

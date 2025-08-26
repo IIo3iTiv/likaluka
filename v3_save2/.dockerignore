@@ -1,0 +1,5 @@
+**/archive/
+**/bin/
+**/datasets/
+**/kafka/
+**/go-kafka-yacloud-test/
