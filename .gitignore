@@ -3,5 +3,5 @@
 *.pem
 *.crt
 *.p12
-**/vendor/
+# **/vendor/
 *.csv
